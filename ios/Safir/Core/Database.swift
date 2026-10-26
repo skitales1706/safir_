@@ -86,9 +86,13 @@ final class Database {
 
     private func open(_ url: URL) throws {
         try openRaw(url)
+        // The key has to be the very first statement: anything prepared before it (even
+        // "PRAGMA cipher_version") makes SQLite read the still-encrypted schema, and the keyed
+        // connection then never reads the file - every launch after the first one failed. On
+        // plain SQLite "PRAGMA key" is an unknown pragma and does nothing.
+        let key = Self.cipherKey()
+        try applyKey(key)
         if cipherAvailable {
-            let key = Self.cipherKey()
-            try applyKey(key)
             if !readable() {
                 // A file from before encryption (or from a build without SQLCipher): re-encrypt it once.
                 sqlite3_close(handle)
