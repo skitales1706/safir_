@@ -49,6 +49,8 @@ struct CallsView: View {
             }
             .background(Safir.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            // The bar belongs to the tab's root screen: a pushed chat or page covers it.
+            .safirTabBar()
             .animation(Safir.spring, value: entries.isEmpty)
             .onAppear {
                 reload()

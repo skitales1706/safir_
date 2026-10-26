@@ -49,18 +49,6 @@ final class TabRouter {
     /// Bumped when the current tab is tapped again - lists scroll back to the top.
     private(set) var reselect = 0
 
-    /// Whether the Chats / Settings root list is on screen. On iOS 26 the path binding alone did
-    /// not report an open chat, and the bar covered the composer; the roots' own appear /
-    /// disappear does.
-    var chatsRootShown = true
-    var settingsRootShown = true
-
-    /// The bar hides while a chat or a settings page is open, like Telegram.
-    var barHidden: Bool {
-        !chatPath.isEmpty || (tab == .chats && !chatsRootShown)
-            || (tab == .settings && (!settingsPath.isEmpty || !settingsRootShown))
-    }
-
     func select(_ new: AppTab) {
         if new == tab {
             reselect &+= 1
@@ -89,7 +77,6 @@ final class TabRouter {
 struct MainTabView: View {
     let user: UserDTO
     @State private var router = TabRouter.shared
-    @State private var unreadChats = 0
     private var calls: CallLog { CallLog.shared }
 
     var body: some View {
@@ -110,32 +97,43 @@ struct MainTabView: View {
                 .toolbar(.hidden, for: .tabBar)
                 .tag(AppTab.settings)
         }
-        .overlay(alignment: .bottom) {
-            if !router.barHidden {
-                SafirTabBar(selected: router.tab, badges: [.chats: unreadChats, .calls: calls.unseenMissed]) { tab in
-                    Safir.tap()
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.74)) { router.select(tab) }
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
-        .animation(Safir.spring, value: router.barHidden)
-        .onAppear {
-            countUnread()
-            calls.refreshBadge()
-        }
-        .onChange(of: ChatService.shared.revision) { _, _ in countUnread() }
+        .onAppear { calls.refreshBadge() }
         .fullScreenCover(isPresented: Binding(get: { CallService.shared.showUI },
                                               set: { CallService.shared.showUI = $0 })) {
             CallView()
         }
     }
 
+}
+
+/// The floating bar on each tab's root screen (inside its NavigationStack), so an opened chat or
+/// settings page simply covers it, like Telegram. It used to float over the whole TabView and hide
+/// itself from the navigation path, which iOS 26 stopped reporting - it stayed over the composer.
+private struct SafirTabBarHost: ViewModifier {
+    @State private var router = TabRouter.shared
+    @State private var unreadChats = 0
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .bottom) {
+                SafirTabBar(selected: router.tab, badges: [.chats: unreadChats, .calls: CallLog.shared.unseenMissed]) { tab in
+                    Safir.tap()
+                    withAnimation(.spring(response: 0.38, dampingFraction: 0.74)) { router.select(tab) }
+                }
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+            }
+            .onAppear { countUnread() }
+            .onChange(of: ChatService.shared.revision) { _, _ in countUnread() }
+    }
+
     /// Chats with unread messages, muted ones not counted (Android chatsBadge).
     private func countUnread() {
         unreadChats = ChatStore.shared.chats().filter { $0.unreadCount > 0 && !$0.isMuted }.count
     }
+}
+
+extension View {
+    func safirTabBar() -> some View { modifier(SafirTabBarHost()) }
 }
 
 /// Telegram/Android floating pill: icon + small label per tab, a tinted capsule that slides to

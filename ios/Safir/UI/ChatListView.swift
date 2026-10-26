@@ -97,8 +97,6 @@ struct ChatListView: View {
                     }
                 }
             }
-            .onAppear { router.chatsRootShown = true }
-            .onDisappear { router.chatsRootShown = false }
             .background(Safir.background.ignoresSafeArea())
             // Ёвар floats above the Settings tab (Android AiFloatingButton, WhatsApp's Meta AI).
             .overlay(alignment: .bottom) {
@@ -154,6 +152,8 @@ struct ChatListView: View {
                 NavigationStack { FoldersPage() }
             }
             .toolbar(.hidden, for: .navigationBar)
+            // The bar belongs to the tab's root screen: a pushed chat or page covers it.
+            .safirTabBar()
             .navigationDestination(for: String.self) { chatId in
                 ChatView(chatId: chatId)
             }

@@ -40,6 +40,8 @@ struct ServicesView: View {
             .tabBarClearance()
             .background(Safir.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            // The bar belongs to the tab's root screen: a pushed chat or page covers it.
+            .safirTabBar()
             .refreshable { await store.load(force: true) }
             .task { await store.load() }
             .navigationDestination(for: ServiceRoute.self) { route in

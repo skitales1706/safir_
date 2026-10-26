@@ -64,6 +64,8 @@ struct ContactsView: View {
             }
             .background(Safir.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            // The bar belongs to the tab's root screen: a pushed chat or page covers it.
+            .safirTabBar()
             .onAppear(perform: reload)
             .onChange(of: ChatService.shared.revision) { _, _ in reload() }
             .sheet(isPresented: $showInvite) { InviteSheet(text: inviteText, link: inviteLink) }
