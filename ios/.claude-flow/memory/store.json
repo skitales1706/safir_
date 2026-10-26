@@ -1,0 +1,68 @@
+{
+  "entries": {
+    "cmd-1793017818452": {
+      "key": "cmd-1793017818452",
+      "value": "{\"command\":\"cd \\\"C:/Users/MURTAZ~1/AppData/Local/Temp/claude/C--Users-Murtazokhon/2c1357b5-509a-4bbb-9189-8b92334da7e0/scratchpad/safir_ios_public/ios\\\" && grep -n \\\"Амина\\\" Safir/Core/DemoData.swift | head -5; grep -n \\\"content:\\\" Safir/Core/DemoData.swift | head -12\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-26T12:30:18.452Z",
+      "lastAccessed": "2026-10-26T12:30:18.452Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-25T12:30:18.452Z"
+    },
+    "cmd-1793017843319": {
+      "key": "cmd-1793017843319",
+      "value": "{\"command\":\"cd \\\"C:/Users/MURTAZ~1/AppData/Local/Temp/claude/C--Users-Murtazokhon/2c1357b5-509a-4bbb-9189-8b92334da7e0/scratchpad/safir_ios_public/ios\\\" && sed -n 55,95p Safir/Core/DemoData.swift\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-26T12:30:43.319Z",
+      "lastAccessed": "2026-10-26T12:30:43.319Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-25T12:30:43.319Z"
+    },
+    "cmd-1793017888469": {
+      "key": "cmd-1793017888469",
+      "value": "{\"command\":\"cd \\\"C:/Users/MURTAZ~1/AppData/Local/Temp/claude/C--Users-Murtazokhon/2c1357b5-509a-4bbb-9189-8b92334da7e0/scratchpad/safir_ios_public/ios\\\" && python - <<'PYEOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-26T12:31:28.469Z",
+      "lastAccessed": "2026-10-26T12:31:28.469Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-25T12:31:28.469Z"
+    },
+    "cmd-1793017911034": {
+      "key": "cmd-1793017911034",
+      "value": "{\"command\":\"cd \\\"C:/Users/MURTAZ~1/AppData/Local/Temp/claude/C--Users-Murtazokhon/2c1357b5-509a-4bbb-9189-8b92334da7e0/scratchpad/safir_ios_public/ios\\\" && grep -n 'shot(app, \\\"12' SafirUITests/ScreenshotTests.swift\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-26T12:31:51.034Z",
+      "lastAccessed": "2026-10-26T12:31:51.034Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-25T12:31:51.034Z"
+    },
+    "cmd-1793017936011": {
+      "key": "cmd-1793017936011",
+      "value": "{\"command\":\"cd \\\"C:/Users/MURTAZ~1/AppData/Local/Temp/claude/C--Users-Murtazokhon/2c1357b5-509a-4bbb-9189-8b92334da7e0/scratchpad/safir_ios_public/ios\\\" && python - <<'PYEOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-26T12:32:16.011Z",
+      "lastAccessed": "2026-10-26T12:32:16.011Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-25T12:32:16.011Z"
+    },
+    "cmd-1793018051351": {
+      "key": "cmd-1793018051351",
+      "value": "{\"command\":\"S=\\\"C:/Users/MURTAZ~1/AppData/Local/Temp/claude/C--Users-Murtazokhon/2c1357b5-509a-4bbb-9189-8b92334da7e0/scratchpad\\\"; cat > \\\"$S/ci_errors.sh\\\" <<'EOF'\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-26T12:34:11.351Z",
+      "lastAccessed": "2026-10-26T12:34:11.351Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-25T12:34:11.351Z"
+    },
+    "cmd-1793018070788": {
+      "key": "cmd-1793018070788",
+      "value": "{\"command\":\"S=\\\"C:/Users/MURTAZ~1/AppData/Local/Temp/claude/C--Users-Murtazokhon/2c1357b5-509a-4bbb-9189-8b92334da7e0/scratchpad\\\"; cat \\\"$S/safir_ios_public/ios/Podfile\\\"; grep -n -i \\\"signal\\\\|warn\\\\|Pod installation\\\\|checksum\\\" \\\"$S/job_40307699474.log\\\" | sed -E 's/^([0-9]+):[0-9TZ:.-]+ /\\\\1: /' | head -40\",\"exitCode\":0,\"success\":true}",
+      "namespace": "commands",
+      "storedAt": "2026-10-26T12:34:30.788Z",
+      "lastAccessed": "2026-10-26T12:34:30.788Z",
+      "accessCount": 0,
+      "expiresAt": "2026-11-25T12:34:30.788Z"
+    }
+  },
+  "version": "3.0.0"
+}

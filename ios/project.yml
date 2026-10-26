@@ -17,6 +17,8 @@ settings:
     DEVELOPMENT_TEAM: ""
     # CocoaPods' script phases read and write outside the sandbox Xcode 15+ enables by default.
     ENABLE_USER_SCRIPT_SANDBOXING: NO
+    # Xcode 26 explicit modules miss libsignal's SignalFfi module map (see Podfile post_install).
+    SWIFT_ENABLE_EXPLICIT_MODULES: NO
 
 # Video meetings (backend routers/meetings.py, Calls/MeetingService.swift). LiveKit bundles its
 # own LKRTC-prefixed WebRTC, so it lives next to the WebRTC pod used for 1:1 calls.

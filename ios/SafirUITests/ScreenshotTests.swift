@@ -122,6 +122,75 @@ final class ScreenshotTests: XCTestCase {
         app.terminate()
     }
 
+    /// The Android-parity screens: emoji / sticker panel, the long-press message menu with its
+    /// reactions, picture themes, the full-screen theme preview and the wallpaper gallery.
+    private func parity(dark: Bool) {
+        let suffix = dark ? "dark" : "light"
+        let app = launch(dark ? ["-SafirDark"] : [])
+        app.staticTexts["Амина Саидова"].firstMatch.tap()
+        sleep(2)
+        app.buttons["emoji-toggle"].firstMatch.tap()
+        sleep(2)
+        shot(app, "12-emoji-panel-\(suffix)")
+        let stickers = app.buttons["panel-stickers"].firstMatch
+        if stickers.waitForExistence(timeout: 2) {
+            stickers.tap()
+            sleep(2)
+            shot(app, "12b-sticker-panel-\(suffix)")
+            app.buttons["panel-emoji"].firstMatch.tap()
+        }
+        // Close the panel: back to the keyboard, then let it go.
+        app.buttons["emoji-toggle"].firstMatch.tap()
+        sleep(1)
+        app.swipeDown()
+        sleep(1)
+        let message = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "педсовет")).firstMatch
+        if message.waitForExistence(timeout: 3) {
+            message.press(forDuration: 0.7)
+            sleep(2)
+            shot(app, "13-message-menu-\(suffix)")
+            let all = app.buttons["Все реакции"].firstMatch
+            if all.waitForExistence(timeout: 2) {
+                all.tap()
+                sleep(2)
+                shot(app, "13b-all-reactions-\(suffix)")
+            }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.06)).tap()
+            sleep(1)
+        }
+        app.buttons["back"].firstMatch.tap()
+        sleep(1)
+        app.buttons["tab-4"].firstMatch.tap()
+        sleep(1)
+        let appearance = app.staticTexts["Оформление"].firstMatch
+        guard appearance.waitForExistence(timeout: 3) else { return }
+        appearance.tap()
+        sleep(2)
+        shot(app, "14-appearance-\(suffix)")
+        let preset = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "Горы Таджикистана")).firstMatch
+        if preset.waitForExistence(timeout: 2) {
+            preset.tap()
+            sleep(2)
+            shot(app, "14b-theme-preview-\(suffix)")
+            app.buttons["Отмена"].firstMatch.tap()
+            sleep(1)
+        }
+        app.swipeUp()
+        sleep(1)
+        shot(app, "14c-bubble-colours-\(suffix)")
+        let wallpapers = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "Обои")).firstMatch
+        if wallpapers.waitForExistence(timeout: 2) {
+            wallpapers.tap()
+            sleep(2)
+            shot(app, "14d-wallpapers-\(suffix)")
+        }
+        app.terminate()
+    }
+
+    func testParityLight() { parity(dark: false) }
+
+    func testParityDark() { parity(dark: true) }
+
     func testLight() { walkthrough(dark: false) }
 
     func testDark() { walkthrough(dark: true) }
