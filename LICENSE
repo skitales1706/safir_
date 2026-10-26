@@ -1,0 +1,49 @@
+Copyright (c) 2026 Murtazo.
+
+TochPayom is distributed under two different licenses, depending on the component.
+
+1. CLIENT APPLICATIONS — GNU Affero General Public License v3.0 only (AGPL-3.0-only)
+
+   app/       Android client
+   desktop/   Desktop client (Electron)
+   web/       Web client, including web/signal-wasm/
+
+   The client applications link libsignal (Signal Messenger, LLC), which is licensed under
+   AGPL-3.0-only. They are therefore licensed under the same terms. The full license text is
+   in the LICENSE file of each of those directories.
+
+   Anyone who receives a client application in binary form (APK, installer, web bundle) is
+   entitled to the Corresponding Source under AGPL-3.0, Section 6. The copyright holder
+   provides it with every delivery; see scripts/make_client_source_bundle.sh.
+
+2. EVERYTHING ELSE — Proprietary, all rights reserved
+
+   This covers every file and directory not listed in section 1, including in particular:
+
+   backend/     Server (FastAPI)
+   admin/       Administration panel
+   db/, nginx/, monitoring/, scripts/, compliance/, docs/, static/
+   docker-compose*.yml, deployment configuration and documentation
+
+   These components do not include or link libsignal. They communicate with the client
+   applications only over network protocols (HTTPS/WebSocket) and are separate programs.
+
+   No part of these components may be used, copied, modified, merged, published,
+   distributed, sublicensed, hosted, or sold, in whole or in part, in any form or by any
+   means, without the prior written permission of the copyright holder. Use by customers is
+   governed by a separate written license agreement.
+
+   Unauthorized use, reproduction, or distribution of these components, or any portion of
+   them, is strictly prohibited and may result in civil and criminal penalties.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR
+ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+"Signal" is a trademark of Signal Messenger, LLC. TochPayom is not affiliated with or
+endorsed by Signal Messenger, LLC.
+
+For licensing inquiries, contact the copyright holder directly.

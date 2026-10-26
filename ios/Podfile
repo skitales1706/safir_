@@ -1,0 +1,44 @@
+# libsignal for Swift (LibSignalClient), the same version as Android (app/build.gradle.kts:
+# org.signal:libsignal-android:0.86.5) so both speak the identical Signal protocol.
+#
+# The pod downloads Signal's prebuilt Rust library (libsignal_ffi.a) and checks it against this
+# SHA-256 - computed from
+# https://build-artifacts.signal.org/libraries/libsignal-client-ios-build-v0.86.5.tar.gz
+# Changing the version means updating both the tag and the checksum.
+ENV['LIBSIGNAL_FFI_PREBUILD_CHECKSUM'] = 'a3df979aa39b307ac4ef0f3fd59536daab5d6b3f8257c7aefe5f0470625f2582'
+
+platform :ios, '17.0'
+# Dynamic, like Signal-iOS: the LibSignalClient framework then links libsignal_ffi.a itself (its
+# podspec's OTHER_LDFLAGS). With static frameworks every consumer - the app AND the extension -
+# had to find signal_ffi on its own and the link failed.
+use_frameworks!
+
+def signal_pods
+  pod 'LibSignalClient', git: 'https://github.com/signalapp/libsignal.git', tag: 'v0.86.5'
+  # Encrypted local database (Core/Database.swift), like Android's SQLCipher Room. The app and the
+  # notification extension open the same file, so both link it.
+  pod 'SQLCipher', '~> 4.6'
+end
+
+target 'Safir' do
+  signal_pods
+  # WebRTC for calls (CallService / WebRTCClient) - Google's WebRTC built for iOS by stasel.
+  pod 'WebRTC-lib', '153.0.0'
+
+  target 'SafirTests' do
+    inherit! :search_paths
+  end
+end
+
+target 'SafirNotificationService' do
+  signal_pods
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+      config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+    end
+  end
+end

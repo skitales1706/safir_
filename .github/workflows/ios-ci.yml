@@ -1,0 +1,125 @@
+name: iOS CI
+
+# There is no Mac in this project's toolchain - this workflow IS the iOS compiler. Every push that
+# touches ios/ builds the app for the simulator (no signing needed), so errors surface after each
+# small change instead of all at once. TestFlight upload comes once the Apple Developer account
+# and signing secrets exist.
+
+on:
+  push:
+    paths:
+      - "ios/**"
+      - ".github/workflows/ios-ci.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v4
+
+      # The iOS 26 SDK gives Liquid Glass: system alerts, sheets and menus, plus our own glass
+      # (UI/SafirChrome.swift safirGlass). Falls back to the runner's default Xcode if missing.
+      - name: Select Xcode 26
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$X" ]; then sudo xcode-select -s "$X"; else echo "::warning::Xcode 26 not found, using the default Xcode"; fi
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      # libsignal (Podfile) - its prebuilt Rust library is cached between runs.
+      - name: Cache libsignal download
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/org.signal.libsignal
+          key: libsignal-${{ hashFiles('ios/Podfile') }}
+
+      - name: Install pods
+        run: pod install --repo-update
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build for simulator
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -workspace Safir.xcworkspace \
+            -scheme Safir \
+            -configuration Debug \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee build.log | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      # Unit tests on a real simulator: Signal through our stores, Android-compatible crypto,
+      # payload parsing, the database. Signing is not needed for the simulator.
+      - name: Unit tests (simulator)
+        run: |
+          set -o pipefail
+          SIM=$(xcrun simctl list devices available | grep -oE "iPhone [0-9]+( Pro)? \(" | head -1 | sed 's/ ($//')
+          echo "Simulator: $SIM"
+          xcodebuild test \
+            -workspace Safir.xcworkspace \
+            -scheme Safir \
+            -destination "platform=iOS Simulator,name=$SIM" \
+            -only-testing:SafirTests \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee test.log | grep -E "error:|Test Case .* (passed|failed)|Executed|TEST (SUCCEEDED|FAILED)" || true
+          grep -q "TEST SUCCEEDED" test.log
+
+      # Screenshots of the main screens in demo mode (made-up chats, no server), light + dark -
+      # the design is reviewed from these until the app runs on a real phone.
+      - name: Screenshots (simulator)
+        if: always()
+        run: |
+          SIM=$(xcrun simctl list devices available | grep -oE "iPhone [0-9]+( Pro)? \(" | head -1 | sed 's/ ($//')
+          xcodebuild test \
+            -workspace Safir.xcworkspace \
+            -scheme Safir \
+            -destination "platform=iOS Simulator,name=$SIM" \
+            -only-testing:SafirUITests \
+            -derivedDataPath build \
+            -resultBundlePath shots.xcresult \
+            CODE_SIGNING_ALLOWED=NO > uitest.log 2>&1 || true
+          grep -E "Test Case .* (passed|failed)|error:" uitest.log | head -20
+          mkdir -p screenshots
+          xcrun xcresulttool export attachments --path shots.xcresult --output-path screenshots || true
+          ls screenshots | head -40
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: ios/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-log
+          path: ios/test.log
+          if-no-files-found: ignore
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: ios/build.log
+          if-no-files-found: ignore

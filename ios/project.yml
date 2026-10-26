@@ -1,0 +1,191 @@
+# XcodeGen spec - the .xcodeproj is generated from this (`xcodegen generate`), never committed,
+# so the project can be edited without Xcode and diffs stay readable. Then `pod install`
+# (Podfile: libsignal) and build Safir.xcworkspace. CI: .github/workflows/ios-ci.yml.
+name: Safir
+options:
+  bundleIdPrefix: tj.safir
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    # Set to the Apple Developer team once the account exists (signing for TestFlight).
+    DEVELOPMENT_TEAM: ""
+    # CocoaPods' script phases read and write outside the sandbox Xcode 15+ enables by default.
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+# Video meetings (backend routers/meetings.py, Calls/MeetingService.swift). LiveKit bundles its
+# own LKRTC-prefixed WebRTC, so it lives next to the WebRTC pod used for 1:1 calls.
+packages:
+  LiveKit:
+    url: https://github.com/livekit/client-sdk-swift
+    from: "2.0.0"
+  # Animated emoji (UI/AnimatedEmoji.swift) - Google Noto Lottie files, same as Android.
+  Lottie:
+    url: https://github.com/airbnb/lottie-spm
+    from: "4.5.0"
+
+targets:
+  Safir:
+    type: application
+    platform: iOS
+    scheme:
+      testTargets: [SafirTests, SafirUITests]
+    sources:
+      - path: Safir
+      # One copy of the animated emoji for both apps (scripts/fetch_animated_emoji.py).
+      - path: ../app/src/main/assets/animated_emoji
+        type: folder
+        buildPhase: resources
+      # The picture chat themes, same webp files as Android (scripts/gen_chat_themes.py).
+      - path: ../app/src/main/res/drawable-nodpi
+        includes: ["wp_*.webp"]
+        buildPhase: resources
+    dependencies:
+      - target: SafirNotificationService
+      - target: SafirWidgets
+      - package: LiveKit
+      - package: Lottie
+    info:
+      path: Safir/Info.plist
+      properties:
+        CFBundleDisplayName: Safir
+        # System texts (Back, Cancel, Share...) in Russian like the rest of the app.
+        CFBundleDevelopmentRegion: ru
+        CFBundleLocalizations: [ru]
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        # safir://services/weather|rates from the widgets, safir://contact/<id> from contact cards.
+        CFBundleURLTypes:
+          - CFBundleURLName: tj.safir.messenger
+            CFBundleURLSchemes: [safir]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        # Content-free APNs wake-ups (backend/apns.py); VoIP pushes + audio for calls.
+        UIBackgroundModes: [remote-notification, voip, audio]
+        # Signal protocol encryption - export compliance has to be declared for TestFlight.
+        ITSAppUsesNonExemptEncryption: true
+        NSMicrophoneUsageDescription: Safir записывает голосовые сообщения и звонки только когда вы нажимаете кнопку.
+        NSPhotoLibraryUsageDescription: Safir отправляет выбранные вами фото и видео в зашифрованном виде.
+        NSCameraUsageDescription: Safir использует камеру для видеозвонков и чтобы снять фото или видео для чата.
+        NSFaceIDUsageDescription: Safir использует Face ID, чтобы открывать приложение только вам.
+        # Shared with the Notification Service Extension (Keychain.swift).
+        SafirKeychainGroup: $(AppIdentifierPrefix)tj.safir.shared
+    entitlements:
+      path: Safir/Safir.entitlements
+      properties:
+        aps-environment: development
+        com.apple.security.application-groups: [group.tj.safir.messenger]
+        keychain-access-groups: [$(AppIdentifierPrefix)tj.safir.shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tj.safir.messenger
+        PRODUCT_NAME: Safir
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Alternate icons (UI/Settings/AppIconPage.swift, scripts/gen_ios_app_icons.py).
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-gold AppIcon-rose AppIcon-neon AppIcon-steel AppIcon-emerald AppIcon-turquoise AppIcon-silver AppIcon-violet"
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: NO
+
+  # Unit tests, run on a simulator in CI (Signal through our stores, Android-compatible media
+  # crypto, backend payload parsing, the local database).
+  SafirTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SafirTests
+    dependencies:
+      - target: Safir
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tj.safir.messenger.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Safir.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Safir
+        BUNDLE_LOADER: $(TEST_HOST)
+
+  # Screenshots of the main screens in demo mode (no server) - design review without a phone.
+  SafirUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: SafirUITests
+    dependencies:
+      - target: Safir
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tj.safir.messenger.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Safir
+
+  # Decrypts a push in the background and shows the real text (NotificationService.swift).
+  # Compiles only the UI-free part of the app: storage, Signal, the message processor.
+  SafirNotificationService:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: SafirNotificationService
+      - path: Safir/Core/APIClient.swift
+      - path: Safir/Core/AppLog.swift
+      - path: Safir/Core/Database.swift
+      - path: Safir/Core/Keychain.swift
+      - path: Safir/Core/Models.swift
+      - path: Safir/Core/NotificationPrefs.swift
+      - path: Safir/Core/PinnedTrust.swift
+      - path: Safir/Core/Schema.swift
+      - path: Safir/Signal
+      - path: Safir/Chat/ChatModels.swift
+      - path: Safir/Chat/ChatStore.swift
+      - path: Safir/Chat/MessageProcessor.swift
+      - path: Safir/Resources/safir_selfsigned.der
+    info:
+      path: SafirNotificationService/Info.plist
+      properties:
+        CFBundleDisplayName: Safir
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        SafirKeychainGroup: $(AppIdentifierPrefix)tj.safir.shared
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
+    entitlements:
+      path: SafirNotificationService/SafirNotificationService.entitlements
+      properties:
+        com.apple.security.application-groups: [group.tj.safir.messenger]
+        keychain-access-groups: [$(AppIdentifierPrefix)tj.safir.shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tj.safir.messenger.notifications
+        PRODUCT_NAME: SafirNotificationService
+        TARGETED_DEVICE_FAMILY: "1"
+        APPLICATION_EXTENSION_API_ONLY: YES
+
+  # Home-screen widgets (weather + rates, Android widget/SafirWidgets.kt). Read-only: they draw
+  # the snapshot the app writes into the App Group (Core/WidgetSnapshot.swift).
+  SafirWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: SafirWidgets
+      - path: Safir/Core/WidgetSnapshot.swift
+    info:
+      path: SafirWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Safir
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: SafirWidgets/SafirWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.tj.safir.messenger]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: tj.safir.messenger.widgets
+        PRODUCT_NAME: SafirWidgets
+        TARGETED_DEVICE_FAMILY: "1"
+        APPLICATION_EXTENSION_API_ONLY: YES
