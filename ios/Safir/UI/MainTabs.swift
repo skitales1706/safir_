@@ -49,8 +49,17 @@ final class TabRouter {
     /// Bumped when the current tab is tapped again - lists scroll back to the top.
     private(set) var reselect = 0
 
+    /// Whether the Chats / Settings root list is on screen. On iOS 26 the path binding alone did
+    /// not report an open chat, and the bar covered the composer; the roots' own appear /
+    /// disappear does.
+    var chatsRootShown = true
+    var settingsRootShown = true
+
     /// The bar hides while a chat or a settings page is open, like Telegram.
-    var barHidden: Bool { !chatPath.isEmpty || (tab == .settings && !settingsPath.isEmpty) }
+    var barHidden: Bool {
+        !chatPath.isEmpty || (tab == .chats && !chatsRootShown)
+            || (tab == .settings && (!settingsPath.isEmpty || !settingsRootShown))
+    }
 
     func select(_ new: AppTab) {
         if new == tab {

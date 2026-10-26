@@ -42,6 +42,8 @@ struct SettingsView: View {
                     .scrollIndicators(.hidden)
                     .tabBarClearance()
             }
+            .onAppear { router.settingsRootShown = true }
+            .onDisappear { router.settingsRootShown = false }
             .background(Safir.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: SettingsRoute.self) { destination($0) }

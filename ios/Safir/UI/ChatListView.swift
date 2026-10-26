@@ -97,6 +97,8 @@ struct ChatListView: View {
                     }
                 }
             }
+            .onAppear { router.chatsRootShown = true }
+            .onDisappear { router.chatsRootShown = false }
             .background(Safir.background.ignoresSafeArea())
             // Ёвар floats above the Settings tab (Android AiFloatingButton, WhatsApp's Meta AI).
             .overlay(alignment: .bottom) {

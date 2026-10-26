@@ -309,6 +309,7 @@ final class CallService: NSObject {
 
     /// Screenshot mode (-SafirDemoCall incoming|active): a made-up call on screen, no CallKit, no network.
     func startDemo(active: Bool) {
+        demo = true
         title = "Амина Саидова"
         participants = [Participant(id: "u-amina", name: title, connected: active)]
         if active {
@@ -391,7 +392,11 @@ final class CallService: NSObject {
         CallLog.shared.record(peerId: peer, outgoing: outgoing, video: isVideo, status: status, duration: duration)
     }
 
+    /// Screenshot mode's made-up call (DemoData): nothing in CallKit to reset.
+    private var demo = false
+
     private func reset() {
+        demo = false
         recordCall()
         logPeer = nil
         declined = false
@@ -425,7 +430,8 @@ final class CallService: NSObject {
 
 extension CallService: CXProviderDelegate {
     nonisolated func providerDidReset(_ provider: CXProvider) {
-        MainActor.assumeIsolated { self.reset() }
+        // The iOS 26 simulator resets CallKit on launch; the screenshot-mode call is not CallKit's.
+        MainActor.assumeIsolated { if !self.demo { self.reset() } }
     }
 
     nonisolated func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
