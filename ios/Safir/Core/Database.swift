@@ -86,18 +86,24 @@ final class Database {
 
     private func open(_ url: URL) throws {
         try openRaw(url)
-        // The key has to be the very first statement: anything prepared before it (even
-        // "PRAGMA cipher_version") makes SQLite read the still-encrypted schema, and the keyed
-        // connection then never reads the file - every launch after the first one failed. On
-        // plain SQLite "PRAGMA key" is an unknown pragma and does nothing.
+        // SQLCipher wants the key before any other statement (even "PRAGMA cipher_version"),
+        // or SQLite may read the still-encrypted schema first. On plain SQLite "PRAGMA key" is an
+        // unknown pragma and does nothing.
         let key = Self.cipherKey()
         try applyKey(key)
         if cipherAvailable {
             if !readable() {
-                // A file from before encryption (or from a build without SQLCipher): re-encrypt it once.
                 sqlite3_close(handle)
                 handle = nil
-                try Self.encryptPlaintext(at: url, key: key)
+                if Self.keyIsEphemeral {
+                    // No Keychain in this build (unsigned simulator): the file was written under an
+                    // earlier run's key that could not be kept, so start it again.
+                    AppLog.write("Keychain unavailable: local database recreated")
+                    Self.remove(url: url)
+                } else {
+                    // A file from before encryption (or from a build without SQLCipher): re-encrypt it once.
+                    try Self.encryptPlaintext(at: url, key: key)
+                }
                 try openRaw(url)
                 try applyKey(key)
                 guard readable() else { throw DatabaseError(message: "encrypted database cannot be read") }
@@ -142,13 +148,27 @@ final class Database {
     /// 32-byte key + 16-byte salt as hex, made once and shared with the notification extension
     /// through the Keychain group (after first unlock, this device only).
     private static func cipherKey() -> String {
-        if let hex = Keychain.get("db_cipher_key"), hex.count == 96 { return hex }
+        keyLock.lock()
+        defer { keyLock.unlock() }
+        if let processKey { return processKey }
+        if let hex = Keychain.get("db_cipher_key"), hex.count == 96 {
+            processKey = hex
+            return hex
+        }
         var bytes = [UInt8](repeating: 0, count: 48)
         _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
         let hex = bytes.map { String(format: "%02x", $0) }.joined()
-        Keychain.set(hex, for: "db_cipher_key")
+        // Only a build without the Keychain entitlement (unsigned simulator) gets this status; a
+        // locked phone answers errSecInteractionNotAllowed and keeps its file.
+        keyIsEphemeral = Keychain.set(hex, for: "db_cipher_key") == errSecMissingEntitlement
+        processKey = hex
         return hex
     }
+
+    /// One key per process: every open (account switch, tests) must use the same one.
+    private static var processKey: String?
+    private static var keyIsEphemeral = false
+    private static let keyLock = NSLock()
 
     /// sqlcipher_export into a new encrypted file, then swap it in.
     private static func encryptPlaintext(at url: URL, key: String) throws {

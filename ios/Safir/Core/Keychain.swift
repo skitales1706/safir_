@@ -25,10 +25,12 @@ enum Keychain {
         return query
     }
 
-    static func set(_ value: String?, for key: String) {
-        if write(value, for: key, group: accessGroup) == errSecMissingEntitlement {
-            _ = write(value, for: key, group: nil)
-        }
+    /// errSecMissingEntitlement after both tries = this build cannot keep Keychain items at all
+    /// (an unsigned simulator build in CI).
+    @discardableResult
+    static func set(_ value: String?, for key: String) -> OSStatus {
+        let status = write(value, for: key, group: accessGroup)
+        return status == errSecMissingEntitlement ? write(value, for: key, group: nil) : status
     }
 
     private static func write(_ value: String?, for key: String, group: String?) -> OSStatus {
