@@ -2,6 +2,7 @@ import SwiftUI
 
 /// The last keyboard height above the home indicator, so the panel opens exactly where the
 /// keyboard was and the composer stays level when switching (Telegram).
+@MainActor
 enum KeyboardMetrics {
     private static let key = "keyboard_height"
 

@@ -68,7 +68,7 @@ private struct SeededRandom {
 
 extension AnyTransition {
     /// Removal for deleted messages; respects "Reduce animations".
-    static func dust(seed: Int) -> AnyTransition {
+    @MainActor static func dust(seed: Int) -> AnyTransition {
         if AppSettings.shared.reduceAnimations { return .opacity }
         return .modifier(active: DustEffect(progress: 1, seed: seed), identity: DustEffect(progress: 0, seed: seed))
     }
