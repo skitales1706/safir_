@@ -1,4 +1,6 @@
+import ImageIO
 import SwiftUI
+import UIKit
 
 /// Safir's own sticker pack, drawn in code like Android's Stickers.kt (no image assets).
 /// On the wire a sticker is an ordinary END-TO-END ENCRYPTED text message whose content is the
@@ -12,6 +14,8 @@ struct StickerDef: Identifiable {
     var colors: [Color] = [Color(hex: 0x1ECFEF), Color(hex: 0x0E7A90)]
     var motion: Motion = .bounce
     var particle: String?
+    /// Animated WebP in the bundle's spirit_stickers/ folder (the "Дух S" pack).
+    var webp: String?
 
     static let pack: [StickerDef] = [
         StickerDef(id: "salom", emoji: "👋", caption: "Салом!", colors: [Color(hex: 0x22C55E), Color(hex: 0x15803D)], motion: .wave, particle: "✨"),
@@ -49,7 +53,13 @@ struct StickerDef: Identifiable {
         StickerDef(id: "greet_chick", emoji: "🐥", caption: "Рӯз ба хайр!", colors: [Color(hex: 0xFFC93C), Color(hex: 0xF08A24)], motion: .pop),
     ]
 
-    private static let byId = Dictionary(uniqueKeysWithValues: (pack + greetings).map { ($0.id, $0) })
+    /// "Дух S" - Safir's mascot, animated WebP shared with Android (app/src/main/assets/spirit_stickers).
+    static let spiritPack: [StickerDef] = [
+        ("greet", "👻"), ("wave", "👋"), ("love", "💙"), ("question", "❓"), ("wow", "❗"), ("cool", "😎"),
+        ("sleep", "😴"), ("peek", "👀"), ("mail", "✉️"), ("laugh", "😂"), ("laptop", "💻"),
+    ].map { StickerDef(id: "spirit_\($0.0)", emoji: $0.1, webp: "spirit_\($0.0)") }
+
+    private static let byId = Dictionary(uniqueKeysWithValues: (pack + greetings + spiritPack).map { ($0.id, $0) })
 
     static func token(_ id: String) -> String { "[sticker:\(id)]" }
 
@@ -88,6 +98,8 @@ struct StickerView: View {
         Group {
             if sticker.isAnimatedEmoji {
                 AnimatedEmojiView(emoji: sticker.emoji, size: size, replay: playToken)
+            } else if let webp = sticker.webp {
+                AnimatedWebPView(name: webp, playing: playing).frame(width: size, height: size)
             } else {
                 drawn
             }
@@ -162,5 +174,54 @@ private struct StickerMotionEffect: ViewModifier {
         case .fly: content.offset(x: 6 * sin(t * 3), y: -6 * abs(sin(t * 2)))
         case .tilt: content.rotationEffect(.degrees(10 * sin(t * 3)))
         }
+    }
+}
+
+/// Plays an animated WebP from the bundle (UIImageView - SwiftUI's Image shows one frame only).
+/// Frames are decoded once per file and kept, like Android's AnimatedImageDrawable.
+struct AnimatedWebPView: UIViewRepresentable {
+    let name: String
+    var playing = true
+
+    nonisolated(unsafe) private static let cache = NSCache<NSString, UIImage>()
+
+    func makeUIView(context: Context) -> UIImageView {
+        let view = UIImageView()
+        view.contentMode = .scaleAspectFit
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        let name = name
+        if let cached = Self.cache.object(forKey: name as NSString) {
+            view.image = cached
+        } else {
+            Task.detached(priority: .userInitiated) {
+                guard let image = Self.load(name) else { return }
+                Self.cache.setObject(image, forKey: name as NSString)
+                await MainActor.run { view.image = image; if playing { view.startAnimating() } }
+            }
+        }
+        return view
+    }
+
+    func updateUIView(_ view: UIImageView, context: Context) {
+        if playing { view.startAnimating() } else { view.stopAnimating() }
+    }
+
+    nonisolated private static func load(_ name: String) -> UIImage? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "webp", subdirectory: "spirit_stickers"),
+              let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let count = CGImageSourceGetCount(source)
+        var frames: [UIImage] = []
+        var duration = 0.0
+        for i in 0..<count {
+            guard let cg = CGImageSourceCreateImageAtIndex(source, i, nil) else { continue }
+            frames.append(UIImage(cgImage: cg))
+            let props = CGImageSourceCopyPropertiesAtIndex(source, i, nil) as? [CFString: Any]
+            let webp = props?[kCGImagePropertyWebPDictionary] as? [CFString: Any]
+            duration += (webp?[kCGImagePropertyWebPUnclampedDelayTime] as? Double)
+                ?? (webp?[kCGImagePropertyWebPDelayTime] as? Double) ?? 0.05
+        }
+        guard !frames.isEmpty else { return nil }
+        return frames.count == 1 ? frames[0] : UIImage.animatedImage(with: frames, duration: duration)
     }
 }

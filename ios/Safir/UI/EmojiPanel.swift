@@ -208,7 +208,7 @@ private struct StickerGrid: View {
     let onPick: (StickerDef) -> Void
     @State private var recent: [StickerDef] = (UserDefaults.standard.stringArray(forKey: StickerGrid.recentKey) ?? [])
         .compactMap { StickerDef.from(content: StickerDef.token($0)) }
-    @State private var selected = "animated"
+    @State private var selected = "spirit"
 
     static let recentKey = "recent_stickers"
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 4)
@@ -218,6 +218,7 @@ private struct StickerGrid: View {
             VStack(spacing: 0) {
                 HStack(spacing: 4) {
                     if !recent.isEmpty { jump("clock", to: "recent", proxy) }
+                    jump("person.crop.circle.fill", to: "spirit", proxy)
                     jump("sparkles", to: "animated", proxy)
                     jump("seal.fill", to: "safir", proxy)
                     Spacer(minLength: 0)
@@ -229,6 +230,9 @@ private struct StickerGrid: View {
                             Section { ForEach(recent) { cell($0) } } header: { header(tr("Недавние")) }
                                 .id("recent")
                         }
+                        // Safir's mascot first, like Telegram puts its own packs on top.
+                        Section { ForEach(StickerDef.spiritPack) { cell($0) } } header: { header(tr("Дух S")) }
+                            .id("spirit")
                         Section { ForEach(StickerDef.animatedPack) { cell($0) } } header: { header(tr("Анимированные")) }
                             .id("animated")
                         Section { ForEach(StickerDef.pack) { cell($0) } } header: { header("Safir") }

@@ -43,6 +43,10 @@ targets:
       - path: ../app/src/main/assets/animated_emoji
         type: folder
         buildPhase: resources
+      # "Дух S" animated sticker pack, same files as Android (UI/Stickers.swift spiritPack).
+      - path: ../app/src/main/assets/spirit_stickers
+        type: folder
+        buildPhase: resources
       # The picture chat themes, same webp files as Android (scripts/gen_chat_themes.py).
       - path: ../app/src/main/res/drawable-nodpi
         includes: ["wp_*.webp"]
